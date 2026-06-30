@@ -3,6 +3,8 @@ package com.example.entities;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -54,8 +56,10 @@ public class Product implements Serializable{
     @Min(value = 0, message = "el precio no puede ser negativo")
     private BigDecimal price;
 
+    
     @NotNull(message = "la presentación es requerida")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Presentation presentation;
 
 }
