@@ -1,14 +1,24 @@
 package com.example.controllers;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.entities.Product;
 import com.example.services.ProductService;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
@@ -39,13 +49,96 @@ public class ProductController {
 
     private final ProductService productService;
 
-    // Método que recibe una petición para devolver un listado de todos los
-    // productos
+    /*
+     * =================== ANTIGUO: ====================
+     * Método que recibe una petición para devolver un listado de todos los
+     * productos
+     * 
+     * @GetMapping
+     * public List<Product> getProducts() {
+     * 
+     * List<Product> allProducts = productService.findAll();
+     * 
+     * return allProducts;
+     * }
+     * ================= NUEVO =======================
+     * 
+     * 
+     * IMPORTANTE!!!
+     * 
+     * Una API REST tiene que devolver informacion respecto a como ha sido
+     * solucionada la peticion (request),
+     * por ejemplo: el codigo 200 significa estado OK de la peticion, el codido 201
+     * significaria CREATED,
+     * el codigo 500 significaria que el servidor no ha podido cumplimentar la
+     * peticion, el codigo 401 NO ENCONTRADO,
+     * el codigo 403 prohibido, ect. Todos estos codigos se pueden encontrar en el
+     * sitio de W3Schools
+     * 
+     * https://www.w3schools.com/tags/ref_httpmessages.asp
+     * 
+     */
+
+    /**
+     * El metodo siguiente va a responder a una peticion (request) del tipo:
+     * 
+     * http://localhost:8080/products?page=0&size=3
+     * 
+     * Donde los parametros page y size seran utilizados para la paginacion, y no
+     * seran requeridos, es decir,
+     * que no son obligatorios que se suministren. Y en caso de NO ser suministrados
+     * (page y size),
+     * los productos se van a devolver ordenados.
+     * 
+     *
+     * ============== Solución 2 JERONIMO: =================
+     * Usar @JsonManagedReference
+     * 
+     * /@JsonBackReference
+     *                    (La oficial de Jackson)Esta pareja de anotaciones trabaja
+     *                    en equipo. La parte "Managed" es la que se serializa
+     *                    normalmente (el frente), y la parte "Back" es la inversa y
+     *                    se omite en el JSON para evitar la redundancia.En tu
+     *                    entidad Product:java@ManyToOne
+     *
+     * /@JoinColumn(name = "presentation_id")
+     *
+     * /@JsonManagedReference // ◄ Se serializa normalmente
+     *
+     *                       private Presentation presentation;
+     *                       Usa el código con precaución.En tu entidad
+     *                       Presentation:java@OneToMany(mappedBy = "presentation")
+     * /@JsonBackReference // ◄ Se omite para no repetir el ciclo
+     *                    private List<Product> products;
+     */
+
     @GetMapping
-    public List<Product> getProducts() {
+    public ResponseEntity<Map<String, Object>> dameProductos(
 
-        List<Product> allProducts = productService.findAll();
+        @RequestParam(name = "page", required = false) Integer page,
+        @RequestParam(name = "size", required = false) Integer size) {
+        
+        
+        List<Product> products = null;
+        Map<String, Object>  responseAsMap = new HashMap<>();
+        Sort sort = Sort.by("name");
+        // comprobar si en la petición me han suministrado page y size
+        if (page !=null && size != null) {
+            // Devuelvo los productos paginados
 
-        return allProducts;
+            Pageable pageable = PageRequest.of(page, size, sort);
+
+             Page<Product> productPage = productService.findAll(pageable);
+             products = productPage.getContent();
+             responseAsMap.put("productos", products);
+        } else {
+
+            // Devolver los productos sin paginar pero ordenados
+            products = productService.findAll(sort);
+            responseAsMap.put("productos", products);
+        }
+
+       
+        return new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
     }
 }
