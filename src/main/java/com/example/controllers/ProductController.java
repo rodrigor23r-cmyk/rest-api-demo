@@ -13,6 +13,7 @@ import com.example.services.ProductService;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * La anotacion @RestController es para que todos los metodos que van a ser
@@ -92,8 +94,8 @@ public class ProductController {
      * 
      *
      * ============== Solución 2 JERONIMO: =================
-     * Usar @JsonManagedReference
-     * 
+     * Usar 
+     * /@JsonManagedReference
      * /@JsonBackReference
      *                    (La oficial de Jackson)Esta pareja de anotaciones trabaja
      *                    en equipo. La parte "Managed" es la que se serializa
@@ -104,12 +106,11 @@ public class ProductController {
      * /@JoinColumn(name = "presentation_id")
      *
      * /@JsonManagedReference // ◄ Se serializa normalmente
-     *
-     *                       private Presentation presentation;
-     *                       Usa el código con precaución.En tu entidad
-     *                       Presentation:java@OneToMany(mappedBy = "presentation")
+     * private Presentation presentation;
+     *                       Usa el código con precaución.En tu entidad Presentation:java
+     * /@OneToMany(mappedBy = "presentation")
      * /@JsonBackReference // ◄ Se omite para no repetir el ciclo
-     *                    private List<Product> products;
+     * private List<Product> products;
      */
 
     @GetMapping
@@ -121,7 +122,10 @@ public class ProductController {
         
         List<Product> products = null;
         Map<String, Object>  responseAsMap = new HashMap<>();
-        Sort sort = Sort.by("name");
+        String nombre = "name";
+        Sort sort = Sort.by(nombre);
+        // Sort sort = Sort.by(Sort.Order.asc("name"));
+        
         // comprobar si en la petición me han suministrado page y size
         if (page !=null && size != null) {
             // Devuelvo los productos paginados
@@ -141,4 +145,46 @@ public class ProductController {
        
         return new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> findProductById(
+        @PathVariable(name = "id", required = true) int product_id) {
+
+            Map<String, Object> responseAsMap = new HashMap<>();
+
+            ResponseEntity<Map<String, Object>> responseEntity = null;
+
+            try {
+                Product product = productService.findById(product_id);
+                
+                if (product != null) {
+                    
+                    String successMessage = "El producto con id " + product_id + " ha sido encontrado.";
+
+                    responseAsMap.put("mensaje todo OK: ", successMessage);
+                    responseAsMap.put("producto encontrado: ", product);
+                    responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
+
+                } else {
+                    String failureMessage = "No ha sido encontrado ningún producto con id: " + product_id;
+                    
+                    responseAsMap.put("error: ", failureMessage);
+                    responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.NOT_FOUND);
+                }             
+    
+            } catch (DataAccessException e) {
+                
+                String errorMessage = "Error grave al buscar el producto con id " + product_id + " y la causa más probable es " + e.getMostSpecificCause().getMessage();
+                //e.getStackTrace();
+                responseAsMap.put("Error grave: ", errorMessage);
+
+                responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
+                
+            }
+
+
+
+        return responseEntity;
+    }
+    
 }
