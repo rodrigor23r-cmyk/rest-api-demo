@@ -40,6 +40,7 @@ public class Product implements Serializable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
     @NotNull(message = "el producto tiene que tener nombre")
     @NotEmpty(message = "el nombre no puede estar vacío")
     @Size(min = 4, max = 25, message = "el nombre del producto debe estar comprendido entre 4 y 25 caracteres")

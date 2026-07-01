@@ -1,5 +1,6 @@
 package com.example.controllers;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.entities.Product;
 import com.example.services.ProductService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.dao.DataAccessException;
@@ -20,8 +22,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 /**
  * La anotacion @RestController es para que todos los metodos que van a ser
@@ -187,4 +194,48 @@ public class ProductController {
         return responseEntity;
     }
     
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> saveProduct (@Valid @RequestBody Product product, BindingResult result) {
+
+        List<String> mensajesDeError = new ArrayList<>();
+        Map<String, Object> responseAsMap = new HashMap<>();
+        ResponseEntity<Map<String, Object>> responseEntity = null;
+        
+        // comprobar errores de validación
+        if (result.hasErrors()) {
+
+            List<ObjectError> objectErrors = result.getAllErrors();
+
+            objectErrors.stream().forEach(objectError -> {
+                mensajesDeError.add(objectError.getDefaultMessage());
+            });
+
+
+        responseAsMap.put("respuesta de error: ", mensajesDeError);
+        responseAsMap.put("producto mal formado: ", product);
+        responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.BAD_REQUEST);
+
+        return responseEntity;
+        }
+        // Persisto (guardo) el producto porque está bien formado
+        try {
+            
+            Product productoAGuardar = productService.save(product);
+            responseAsMap.put("mensaje: ", "Producto persistido exitósamente!");
+            responseAsMap.put("producto persistido: ", productoAGuardar);
+            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.CREATED);
+
+        } catch (DataAccessException e) {
+            
+            String errorMessage = "Error grave al guardar el producto y la causa más probable es " + e.getMostSpecificCause().getMessage();
+                //e.getStackTrace();
+                responseAsMap.put("Error grave: ", errorMessage);
+
+                responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return responseEntity;
+
+    }
+
 }
