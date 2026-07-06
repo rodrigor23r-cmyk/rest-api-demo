@@ -63,4 +63,6 @@ public class Product implements Serializable{
     @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Presentation presentation;
 
+    private String productImage;
+
 }

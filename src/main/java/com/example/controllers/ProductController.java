@@ -1,5 +1,7 @@
 package com.example.controllers;
 
+import com.example.models.FileUploadResponse;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,11 +9,15 @@ import java.util.Map;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.entities.Product;
 import com.example.services.ProductService;
+import com.example.utilities.FileUploadUtil;
 
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -57,6 +63,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class ProductController {
 
     private final ProductService productService;
+    private final FileUploadUtil fileUploadUtil; // como tengo lombok ya se inyecta la dependencia y no se instancia
+
 
     /*
      * =================== ANTIGUO: ====================
@@ -194,8 +202,19 @@ public class ProductController {
         return responseEntity;
     }
     
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> saveProduct (@Valid @RequestBody Product product, BindingResult result) {
+
+    /**
+     * antes sin foto: public ResponseEntity<Map<String, Object>> saveProduct (@Valid @RequestBody Product product, BindingResult result) {
+     * dentro del Request no sólo hay un json sino que hay una imagen
+     * y muy importante anotar el método en todos los anotados con Transactional
+     * y también especificar el tipo de archivo que ...
+     * @throws IOException 
+     * la anotación de antes: error al nombrar el archivo y guardarlo
+    */
+    @PostMapping(consumes = "multipart/form-data")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> saveProduct (@Valid @RequestPart Product product, BindingResult result,
+            @RequestPart(name = "file", required = false) MultipartFile imagenDelProducto) throws IOException {
 
         List<String> mensajesDeError = new ArrayList<>();
         Map<String, Object> responseAsMap = new HashMap<>();
@@ -217,7 +236,34 @@ public class ProductController {
 
         return responseEntity;
         }
-        // Persisto (guardo) el producto porque está bien formado
+        /**
+         * Persisto (guardo) el producto porque está bien formado
+         * compruebo si hay imagen para guardarla
+         */
+        if (imagenDelProducto != null && !imagenDelProducto.isEmpty()) {
+
+            /**
+             * agregar prefijo: código alfanumérico aleatorio con método Apache Commons text (Lang3) (dependencia Maven -> pom.xml)
+             * 
+             * Beans vs Components:
+             * Ahora crearemos un componente en el paquete utilities. Dentro habrá un método para guardar la imagen en una carpeta y
+             * devuelve un código aleatorio que llevará como prefijo el nombre del fichero original
+             * 
+             * NIO.2 (entrada salida no bloqueante) si no existe la carpeta la creará.
+             */
+            String fileCode = fileUploadUtil.saveFile(imagenDelProducto.getOriginalFilename(), imagenDelProducto);
+
+            product.setProductImage(fileCode + imagenDelProducto.getOriginalFilename());
+            /**
+             * en el paquete models crearemos un record donde devolveremos al frontend la info de la imagen
+             */
+            FileUploadResponse fileUploadResponse = new FileUploadResponse(fileCode + '-' + imagenDelProducto.getOriginalFilename(), 
+                                                                        "/products/fileDownload",
+                                                                                    imagenDelProducto.getSize());
+        
+            responseAsMap.put("información de la imagen del producto", fileUploadResponse);                                                                    
+        }
+
         try {
             
             Product productoAGuardar = productService.save(product);
