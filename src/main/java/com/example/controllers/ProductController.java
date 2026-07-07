@@ -15,26 +15,28 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.entities.Product;
 import com.example.services.ProductService;
+import com.example.utilities.FileDownloadUtil;
 import com.example.utilities.FileUploadUtil;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.core.io.Resource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-
 
 /**
  * La anotacion @RestController es para que todos los metodos que van a ser
@@ -62,9 +64,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequiredArgsConstructor
 public class ProductController {
 
+    private final FileDownloadUtil fileDownloadUtil;
     private final ProductService productService;
     private final FileUploadUtil fileUploadUtil; // como tengo lombok ya se inyecta la dependencia y no se instancia
-
 
     /*
      * =================== ANTIGUO: ====================
@@ -109,20 +111,20 @@ public class ProductController {
      * 
      *
      * ============== Solución 2 JERONIMO: =================
-     * Usar 
+     * Usar
      * /@JsonManagedReference
      * /@JsonBackReference
-     *                    (La oficial de Jackson)Esta pareja de anotaciones trabaja
-     *                    en equipo. La parte "Managed" es la que se serializa
-     *                    normalmente (el frente), y la parte "Back" es la inversa y
-     *                    se omite en el JSON para evitar la redundancia.En tu
-     *                    entidad Product:java@ManyToOne
+     * (La oficial de Jackson)Esta pareja de anotaciones trabaja
+     * en equipo. La parte "Managed" es la que se serializa
+     * normalmente (el frente), y la parte "Back" es la inversa y
+     * se omite en el JSON para evitar la redundancia.En tu
+     * entidad Product:java@ManyToOne
      *
      * /@JoinColumn(name = "presentation_id")
      *
      * /@JsonManagedReference // ◄ Se serializa normalmente
      * private Presentation presentation;
-     *                       Usa el código con precaución.En tu entidad Presentation:java
+     * Usa el código con precaución.En tu entidad Presentation:java
      * /@OneToMany(mappedBy = "presentation")
      * /@JsonBackReference // ◄ Se omite para no repetir el ciclo
      * private List<Product> products;
@@ -131,25 +133,24 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> dameProductos(
 
-        @RequestParam(name = "page", required = false) Integer page,
-        @RequestParam(name = "size", required = false) Integer size) {
-        
-        
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size) {
+
         List<Product> products = null;
-        Map<String, Object>  responseAsMap = new HashMap<>();
+        Map<String, Object> responseAsMap = new HashMap<>();
         String nombre = "name";
         Sort sort = Sort.by(nombre);
         // Sort sort = Sort.by(Sort.Order.asc("name"));
-        
+
         // comprobar si en la petición me han suministrado page y size
-        if (page !=null && size != null) {
+        if (page != null && size != null) {
             // Devuelvo los productos paginados
 
             Pageable pageable = PageRequest.of(page, size, sort);
 
-             Page<Product> productPage = productService.findAll(pageable);
-             products = productPage.getContent();
-             responseAsMap.put("productos", products);
+            Page<Product> productPage = productService.findAll(pageable);
+            products = productPage.getContent();
+            responseAsMap.put("productos", products);
         } else {
 
             // Devolver los productos sin paginar pero ordenados
@@ -157,69 +158,71 @@ public class ProductController {
             responseAsMap.put("productos", products);
         }
 
-       
-        return new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
+        return new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> findProductById(
-        @PathVariable(name = "id", required = true) int product_id) {
+            @PathVariable(name = "id", required = true) int product_id) {
 
-            Map<String, Object> responseAsMap = new HashMap<>();
+        Map<String, Object> responseAsMap = new HashMap<>();
 
-            ResponseEntity<Map<String, Object>> responseEntity = null;
+        ResponseEntity<Map<String, Object>> responseEntity = null;
 
-            try {
-                Product product = productService.findById(product_id);
-                
-                if (product != null) {
-                    
-                    String successMessage = "El producto con id " + product_id + " ha sido encontrado.";
+        try {
+            Product product = productService.findById(product_id);
 
-                    responseAsMap.put("mensaje todo OK: ", successMessage);
-                    responseAsMap.put("producto encontrado: ", product);
-                    responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.OK);
+            if (product != null) {
 
-                } else {
-                    String failureMessage = "No ha sido encontrado ningún producto con id: " + product_id;
-                    
-                    responseAsMap.put("error: ", failureMessage);
-                    responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.NOT_FOUND);
-                }             
-    
-            } catch (DataAccessException e) {
-                
-                String errorMessage = "Error grave al buscar el producto con id " + product_id + " y la causa más probable es " + e.getMostSpecificCause().getMessage();
-                //e.getStackTrace();
-                responseAsMap.put("Error grave: ", errorMessage);
+                String successMessage = "El producto con id " + product_id + " ha sido encontrado.";
 
-                responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
-                
+                responseAsMap.put("mensaje todo OK: ", successMessage);
+                responseAsMap.put("producto encontrado: ", product);
+                responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.OK);
+
+            } else {
+                String failureMessage = "No ha sido encontrado ningún producto con id: " + product_id;
+
+                responseAsMap.put("error: ", failureMessage);
+                responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.NOT_FOUND);
             }
 
+        } catch (DataAccessException e) {
 
+            String errorMessage = "Error grave al buscar el producto con id " + product_id
+                    + " y la causa más probable es "
+                    + e.getMostSpecificCause().getMessage();
+
+            // e.getStackTrace();
+            responseAsMap.put("Error grave: ", errorMessage);
+
+            responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
+
+        }
 
         return responseEntity;
     }
-    
 
     /**
-     * antes sin foto: public ResponseEntity<Map<String, Object>> saveProduct (@Valid @RequestBody Product product, BindingResult result) {
+     * antes sin foto: public ResponseEntity<Map<String, Object>> saveProduct
+     * (@Valid @RequestBody Product product, BindingResult result) {
      * dentro del Request no sólo hay un json sino que hay una imagen
      * y muy importante anotar el método en todos los anotados con Transactional
      * y también especificar el tipo de archivo que ...
-     * @throws IOException 
-     * la anotación de antes: error al nombrar el archivo y guardarlo
-    */
+     * 
+     * @throws IOException
+     *                     la anotación de antes: error al nombrar el archivo y
+     *                     guardarlo
+     */
     @PostMapping(consumes = "multipart/form-data")
     @Transactional
-    public ResponseEntity<Map<String, Object>> saveProduct (@Valid @RequestPart Product product, BindingResult result,
+    public ResponseEntity<Map<String, Object>> saveProduct(@Valid @RequestPart Product product, BindingResult result,
             @RequestPart(name = "file", required = false) MultipartFile imagenDelProducto) throws IOException {
 
         List<String> mensajesDeError = new ArrayList<>();
         Map<String, Object> responseAsMap = new HashMap<>();
         ResponseEntity<Map<String, Object>> responseEntity = null;
-        
+
         // comprobar errores de validación
         if (result.hasErrors()) {
 
@@ -229,12 +232,11 @@ public class ProductController {
                 mensajesDeError.add(objectError.getDefaultMessage());
             });
 
+            responseAsMap.put("respuesta de error: ", mensajesDeError);
+            responseAsMap.put("producto mal formado: ", product);
+            responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.BAD_REQUEST);
 
-        responseAsMap.put("respuesta de error: ", mensajesDeError);
-        responseAsMap.put("producto mal formado: ", product);
-        responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.BAD_REQUEST);
-
-        return responseEntity;
+            return responseEntity;
         }
         /**
          * Persisto (guardo) el producto porque está bien formado
@@ -243,11 +245,14 @@ public class ProductController {
         if (imagenDelProducto != null && !imagenDelProducto.isEmpty()) {
 
             /**
-             * agregar prefijo: código alfanumérico aleatorio con método Apache Commons text (Lang3) (dependencia Maven -> pom.xml)
+             * agregar prefijo: código alfanumérico aleatorio con método Apache Commons text
+             * (Lang3) (dependencia Maven -> pom.xml)
              * 
              * Beans vs Components:
-             * Ahora crearemos un componente en el paquete utilities. Dentro habrá un método para guardar la imagen en una carpeta y
-             * devuelve un código aleatorio que llevará como prefijo el nombre del fichero original
+             * Ahora crearemos un componente en el paquete utilities. Dentro habrá un método
+             * para guardar la imagen en una carpeta y
+             * devuelve un código aleatorio que llevará como prefijo el nombre del fichero
+             * original
              * 
              * NIO.2 (entrada salida no bloqueante) si no existe la carpeta la creará.
              */
@@ -255,33 +260,74 @@ public class ProductController {
 
             product.setProductImage(fileCode + imagenDelProducto.getOriginalFilename());
             /**
-             * en el paquete models crearemos un record donde devolveremos al frontend la info de la imagen
+             * en el paquete models crearemos un record donde devolveremos al frontend la
+             * info de la imagen
              */
-            FileUploadResponse fileUploadResponse = new FileUploadResponse(fileCode + '-' + imagenDelProducto.getOriginalFilename(), 
-                                                                        "/products/fileDownload",
-                                                                                    imagenDelProducto.getSize());
-        
-            responseAsMap.put("información de la imagen del producto", fileUploadResponse);                                                                    
+            FileUploadResponse fileUploadResponse = new FileUploadResponse(
+                    fileCode + '-' + imagenDelProducto.getOriginalFilename(),
+                    "/products/fileDownload",
+                    imagenDelProducto.getSize());
+
+            responseAsMap.put("información de la imagen del producto", fileUploadResponse);
         }
 
         try {
-            
+
             Product productoAGuardar = productService.save(product);
             responseAsMap.put("mensaje: ", "Producto persistido exitósamente!");
             responseAsMap.put("producto persistido: ", productoAGuardar);
-            responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.CREATED);
+            responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.CREATED);
 
         } catch (DataAccessException e) {
-            
-            String errorMessage = "Error grave al guardar el producto y la causa más probable es " + e.getMostSpecificCause().getMessage();
-                //e.getStackTrace();
-                responseAsMap.put("Error grave: ", errorMessage);
 
-                responseEntity = new ResponseEntity<Map<String,Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
+            String errorMessage = "Error grave al guardar el producto y la causa más probable es "
+                    + e.getMostSpecificCause().getMessage();
+            // e.getStackTrace();
+            responseAsMap.put("Error grave: ", errorMessage);
+
+            responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return responseEntity;
 
+    }
+
+    /**
+     * Metodo que recupera la imagen de un producto, dado el codigo que
+     * tiene como prefijo el nombre de la imagen
+     */
+
+    @GetMapping("/fileDownload/{fileCode}")
+    public ResponseEntity<?> downloadFile(@PathVariable String fileCode) {
+
+        Resource resource = null;
+
+        try {
+
+            resource = fileDownloadUtil.getFileAsResource(fileCode);
+
+        } catch (IOException ioe) {
+
+            return ResponseEntity.internalServerError().build();
+        }
+
+        if (resource == null)
+            return new ResponseEntity<>("imagen no encontrada", HttpStatus.NOT_FOUND);
+
+        /**
+         * Si estamos en este punto quiere decir que el fichero (imagen del producto) ha
+         * sido
+         * encontrado y podemos enviarlo como respuesta a la peticion, como un fichero
+         * adjunto
+         * en el cuerpo de la respuesta
+         */
+        String contentType = "application/octet-stream";
+        String headerValue = "attachment; fileName=\"" + resource.getFilename() + "\"";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
+                .body(resource);
     }
 
 }
