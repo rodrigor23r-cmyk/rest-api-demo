@@ -263,7 +263,7 @@ public class ProductController {
              */
             String fileCode = fileUploadUtil.saveFile(imagenDelProducto.getOriginalFilename(), imagenDelProducto);
 
-            product.setProductImage(fileCode + imagenDelProducto.getOriginalFilename());
+            product.setProductImage(fileCode + '-' + imagenDelProducto.getOriginalFilename());
             /**
              * en el paquete models crearemos un record donde devolveremos al frontend la
              * info de la imagen
@@ -402,7 +402,7 @@ public class ProductController {
              */
             String fileCode = fileUploadUtil.saveFile(imagenDelProducto.getOriginalFilename(), imagenDelProducto);
 
-            product.setProductImage(fileCode + imagenDelProducto.getOriginalFilename());
+            product.setProductImage(fileCode + '-' + imagenDelProducto.getOriginalFilename());
             /**
              * en el paquete models crearemos un record donde devolveremos al frontend la
              * info de la imagen

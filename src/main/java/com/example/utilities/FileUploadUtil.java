@@ -59,7 +59,7 @@ public class FileUploadUtil {
 
         } catch (IOException ioe) {
             
-            throw new IOException("error al guardar la imagen recibida" + fileName, ioe);
+            throw new IOException("error al guardar la imagen recibida " + fileName, ioe);
         }
 
 
