@@ -35,12 +35,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
 
 /**
  * La anotacion @RestController es para que todos los metodos que van a ser
@@ -339,12 +339,12 @@ public class ProductController {
      * actualizar producto con id recibido en la petición
      * implementación prácticamente igual a la de persistir o save
      */
-    @PutMapping(value = "/{id}", consumes="multipart/form-data")
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     @Transactional
     public ResponseEntity<Map<String, Object>> updateProduct(
-        @Valid @RequestPart Product product, BindingResult result,
-        @RequestPart(name = "file", required = false) MultipartFile imagenDelProducto,
-        @PathVariable (name="id", required = true) int product_id)  throws IOException {
+            @Valid @RequestPart Product product, BindingResult result,
+            @RequestPart(name = "file", required = false) MultipartFile imagenDelProducto,
+            @PathVariable(name = "id", required = true) int product_id) throws IOException {
 
         List<String> mensajesDeError = new ArrayList<>();
         Map<String, Object> responseAsMap = new HashMap<>();
@@ -368,16 +368,15 @@ public class ProductController {
         /**
          * Persisto (guardo) el producto porque está bien formado
          * compruebo si hay imagen para guardarla
-         * y en tal caso debo eliminar la imagen del producto 
+         * y en tal caso debo eliminar la imagen del producto
          */
         Product productoParaActualizar = productService.findById(product_id);
 
         if (productoParaActualizar == null) {
 
-            responseAsMap.put("mensaje de error: ", "producto con id: " +  product_id + " no encontrado.");
+            responseAsMap.put("mensaje de error: ", "producto con id: " + product_id + " no encontrado.");
             return new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.NOT_FOUND);
         }
-
 
         if (imagenDelProducto != null && !imagenDelProducto.isEmpty()) {
 
@@ -434,6 +433,46 @@ public class ProductController {
 
         return responseEntity;
 
+    }
+
+    /**
+     * Metodo para eliminar un producto dado el id
+     */
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> deleteProducto(@PathVariable Integer id) {
+
+        ResponseEntity<Map<String, Object>> responseEntity = null;
+        var responseAsMap = new HashMap<String, Object>();
+
+        try {
+
+            // recuperar el producto y comprobar si hay foto y eliminar el archivo
+            Product productToDelete = productService.findById(id);
+
+            if (productToDelete == null) {
+
+            responseAsMap.put("mensaje de error: ", "producto con id: " + id + " no encontrado.");
+            return new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.NOT_FOUND);
+        }
+
+            if (productToDelete.getProductImage() != null) {
+                fileUtil.eliminarArchivo(productToDelete.getProductImage());
+            }
+
+            productService.delete(productService.findById(id));
+            String successMessage = "El producto con id " + id + ", ha sido eliminado";
+            responseAsMap.put("mensaje", successMessage);
+            responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.OK);
+        } catch (DataAccessException e) {
+            String errorMessage = "No ha podido ser eliminado el producto cuyo id es: " + id
+                    + ", siendo la causa mas probable: " + e.getMostSpecificCause().getMessage();
+            responseAsMap.put("mensaje", errorMessage);
+            responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap,
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return responseEntity;
     }
 
 }
