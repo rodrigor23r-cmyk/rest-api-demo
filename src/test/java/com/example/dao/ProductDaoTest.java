@@ -1,9 +1,7 @@
 package com.example.dao;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.math.BigDecimal;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,7 +65,7 @@ public class ProductDaoTest {
         // then
 
         assertThat(productGuardado).isNotNull();
-        assertThat
+        assertThat(productGuardado.getId()).isGreaterThan(0);
 
     }
 }

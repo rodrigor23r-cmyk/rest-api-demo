@@ -34,3 +34,6 @@ build/
 
 ### carpeta de fotos ###
 /Files-Upload/
+
+### variables de entorno (credenciales) ###
+.env
