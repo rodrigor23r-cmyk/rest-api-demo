@@ -45,7 +45,7 @@ public class ProductServiceImplTest {
 
     Product product1, product2;
 
-    List<Product> productList = new ArrayList<>();
+    List<Product> productsList;
 
     // metemos datos falsos
     @BeforeEach 
@@ -74,8 +74,9 @@ public class ProductServiceImplTest {
             .presentation(presentation)
             .build();
             
-        productList.add(product1);
-        productList.add(product2);
+        productsList = new ArrayList<>(); // se reinicia en cada test, explícitamente
+        productsList.add(product1);
+        productsList.add(product2);
     }
 
 
@@ -115,6 +116,7 @@ public class ProductServiceImplTest {
         //set -a; source .env; set +a; ./mvnw spring-boot:run
         //mvn test -Dtest=ProductDaoTest#testSaveProduct
         //mvn test -Dtest=ProductServiceImplTest#testSave
+        // ./mvnw test
 
     }
 
@@ -138,7 +140,7 @@ public class ProductServiceImplTest {
     void testFindAll() {
 
         // given
-        given(productDao.findAll()).willReturn(productList);
+        given(productDao.findAll()).willReturn(productsList);
         
         // when
         List<Product> products = productServiceImpl.findAll();

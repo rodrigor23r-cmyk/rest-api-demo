@@ -10,9 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 // import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Sort;
@@ -30,26 +27,38 @@ import com.example.entities.Product;
 import com.example.services.ProductService;
 import com.example.utilities.FileDownloadUtil;
 import com.example.utilities.FileUploadUtil;
+import com.example.utilities.FileUtil;
 
-import ch.qos.logback.core.util.FileUtil;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /**
  * webMvcTest es la anotación para hacer test de integración en el controller.
  * No valdría si tuviéramos implementado Spring Security. Then We have to use
- * the annotation: "@SpringBootTest"
- */
+ * the annotation: 
+ * "@SpringBootTest"
+
+
+ * INNECESARIOs:
+ 
+* "@AutoConfigureTestDatabase(replace = Replace.NONE)"
+¿Por qué? - No se toca la BD aquí...
+ * Para usar la base de datos real y no una en memoria H2. Esto es útil para
+ testear la capa de repositorio.
+ Al terminar los test, la BD se queda como estaba antes.
+ 
+ 
+ * "@AutoConfigureMockMvc"
+¿Por qué? - Es redundante. Su uso YA lo incluye la anotación "@WebMvcTest"
+ Para usar MockMvc y poder hacer peticiones HTTP a los endpoints del
+ controller. 
+ 
+
+La única anotación necesaria:*/
 @WebMvcTest(controllers = ProductController.class)
-// Para usar la base de datos real y no una en memoria H2. Esto es útil para
-// testear la capa de repositorio.
-// Al terminar los test, la BD se queda como estaba antes.
-@AutoConfigureTestDatabase(replace = Replace.NONE)
-// Para usar MockMvc y poder hacer peticiones HTTP a los endpoints del
-// controller.
-@AutoConfigureMockMvc
 public class ProductControllerTest {
 
     @Autowired
@@ -64,22 +73,22 @@ public class ProductControllerTest {
     @MockitoBean
     FileUploadUtil fileUploadUtil;
 
-    @Autowired
-    ObjectMapper objectMapper;
-
     @MockitoBean 
     FileUtil fileUtil;
 
+    // no se usa en testDameProductos() pero SÍ en save y update!
+    @Autowired
+    ObjectMapper objectMapper;
+
+
     Product product1;
-    Presentation presentation1;
-    Presentation presentation2;
     Product product2;
-    List<Product> products = new ArrayList<>();
+    List<Product> productsList;
 
     @BeforeEach
     void setUp() {
 
-        presentation1 = Presentation.builder()
+        Presentation presentation1 = Presentation.builder()
                 .name("decenas")
                 .description("Por decenas")
                 .build();
@@ -93,7 +102,7 @@ public class ProductControllerTest {
                 .presentation(presentation1)
                 .build();
 
-        presentation2 = Presentation.builder()
+        Presentation presentation2 = Presentation.builder()
                 .name("unidades")
                 .description("Por unidades")
                 .build();
@@ -107,8 +116,9 @@ public class ProductControllerTest {
                 .presentation(presentation2)
                 .build();
 
-        products.add(product1);
-        products.add(product2);
+        productsList = new ArrayList<>();
+        productsList.add(product1);
+        productsList.add(product2);
     }
 
     @Test
@@ -116,16 +126,19 @@ public class ProductControllerTest {
     void testDameProductos() throws Exception {
 
         // given
-        given(productService.findAll(Sort.by("name"))).willReturn(products);
+        given(productService.findAll(Sort.by("name"))).willReturn(productsList);
 
         // when
         ResultActions response = mockMvc.perform(get("/products")
                 .accept(MediaType.APPLICATION_JSON));
 
         // then
-        response.andExpect(status().isOk())
-                .andDo(print())
-                .andExpect(jsonPath("$.productos", is(products.size())));
+        // OJO!!! andDo(print()) va primero.
+        response.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productos", hasSize(productsList.size())))
+                .andExpect(jsonPath("$.productos[0].name", is("Canon ES800")))
+                .andExpect(jsonPath("$.productos[1].name", is("HP frigorífico")));
 
     }
 
