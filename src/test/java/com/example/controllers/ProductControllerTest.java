@@ -1,5 +1,6 @@
 package com.example.controllers;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -142,6 +144,44 @@ public class ProductControllerTest {
 
     }
 
+
+    @Test
+    @DisplayName("ControllerTest para persistir un producto")
+    void testSaveProduct() throws Exception {
+
+        // given
+        given(productService.save(any(Product.class)))
+                .willAnswer(invocation->invocation.getArgument(0));
+        
+        // when
+
+        String jsonStringProduct = objectMapper.writeValueAsString(product1);
+
+        // estamos simulando los campos del Postman, que son los que se envían en la petición HTTP.
+        MockMultipartFile byteArrayProducto = new MockMultipartFile(
+                "product",
+                null,
+                "Application/json",
+                jsonStringProduct.getBytes());
+
+        ResultActions response = mockMvc.perform(multipart("/products")
+                .file("file", null)
+                .file(byteArrayProducto));
+
+        // then
+        response.andDo(print())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$['producto persistido: '].name", is("Canon ES800")))
+                .andExpect(jsonPath("$['producto persistido: '].name", is(product1.getName()))) // es la misma comprobación que la línea superior.
+                .andExpect(jsonPath("$['producto persistido: '].description", is("Un pepino de cámara")))
+                .andExpect(jsonPath("$['producto persistido: '].price", is(1500)))
+                .andExpect(jsonPath("$['producto persistido: '].stock", is(400)))
+                .andExpect(jsonPath("$['producto persistido: '].presentation.name", is("decenas")))
+                .andExpect(jsonPath("$['producto persistido: '].presentation.description", is("Por decenas")));
+        
+    }
+
+
     @Test
     void testDeleteProducto() {
 
@@ -154,11 +194,6 @@ public class ProductControllerTest {
 
     @Test
     void testFindProductById() {
-
-    }
-
-    @Test
-    void testSaveProduct() {
 
     }
 
