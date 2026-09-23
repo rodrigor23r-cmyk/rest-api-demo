@@ -181,7 +181,42 @@ public class ProductControllerTest {
         
     }
 
+    @Test
+    @DisplayName ("Test de controller para recuperar un producto por su Id")
+    void testFindProductById() throws Exception {
 
+        // given
+
+        int productId =1;
+
+        given(productService.findById(productId)).willReturn(product1);
+
+        // when
+
+        ResultActions response = mockMvc.perform(get("/products/{Id}", productId));
+        
+        // then
+        response.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$['producto encontrado: '].name", is(product1.getName())))
+                .andExpect(jsonPath("$['producto encontrado: '].description", is(product1.getDescription())));
+    }
+
+
+    @Test 
+    @DisplayName("testProductoNoEncontrado")
+    void testProductoNoEncontrado() throws Exception {
+
+        given(productService.findById(20)).willReturn(null);
+
+        mockMvc.perform(get("/products/{id}", 20))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    
+    
+    
     @Test
     void testDeleteProducto() {
 
@@ -192,14 +227,13 @@ public class ProductControllerTest {
 
     }
 
-    @Test
-    void testFindProductById() {
-
-    }
+    
 
     @Test
     void testUpdateProduct() {
 
     }
+
+
 
 }
