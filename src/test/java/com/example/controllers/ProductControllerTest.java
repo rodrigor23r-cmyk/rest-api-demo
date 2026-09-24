@@ -266,7 +266,7 @@ public class ProductControllerTest {
                                         request.setMethod("PUT");
                                         return request;
                                 })
-                                .file("image", null)
+                                .file("file", null)
                                 .file(bytesArrayProduct));
 
                 // then
