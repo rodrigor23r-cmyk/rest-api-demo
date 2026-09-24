@@ -236,7 +236,7 @@ public class ProductControllerTest {
         }
 
         @Test
-        @DisplayName ("Test de controller para actualizar un producto")
+        @DisplayName("Test de controller para actualizar un producto")
         void testUpdateProduct() throws JacksonException, Exception {
 
                 // Given
@@ -262,11 +262,17 @@ public class ProductControllerTest {
                 ResultActions response = mockMvc.perform(put("/products/{id}", productId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(productoActualizado)));
-                                // .header("Authorization", this.token));
+                // .header("Authorization", this.token));
 
                 // Then
-                
-
+                response.andDo(print()).andExpect(status().isOk())
+                                .andExpect(jsonPath("$.mensaje", is("El producto ha sido modificado exitosamente")))
+                                .andExpect(jsonPath("$.producto.id", is(productId)))
+                                .andExpect(jsonPath("$.producto.name", is(productoActualizado.getName())))
+                                .andExpect(jsonPath("$.producto.description", is(productoActualizado.getDescription())))
+                                .andExpect(jsonPath("$.producto.price", is(productoActualizado.getPrice().intValue())))
+                                .andExpect(jsonPath("$.producto.stock", is(productoActualizado.getStock())))
+                                .andExpect(jsonPath("$.producto.presentation.name", is("unidades")));
         }
 
 }
