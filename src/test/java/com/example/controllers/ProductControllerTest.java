@@ -236,7 +236,7 @@ public class ProductControllerTest {
         }
 
         @Test
-        @DisplayName ("Test de controller para actualizar un producto")
+        @DisplayName("Test de controller para actualizar un producto")
         void testUpdateProduct() throws JacksonException, Exception {
 
                 // Given
@@ -253,20 +253,28 @@ public class ProductControllerTest {
                 given(productService.save(any(Product.class)))
                                 .willAnswer(invocation -> invocation.getArgument(0));
 
-                // When
-                // Si todo el producto se recibe en el cuerpo de la peticion procedemos
-                // de la forma siguiente, de lo contrario, si por una parte va el producto
-                // y por otra la imagen, hay que proceder de manera diferente (muy similar
-                // al test de persistir un producto con su imagen)
+                // when
+                String jsonStringProduct = objectMapper.writeValueAsString(productoActualizado);
 
-                ResultActions response = mockMvc.perform(put("/products/{id}", productId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(productoActualizado)));
-                                // .header("Authorization", this.token));
+                MockMultipartFile bytesArrayProduct = new MockMultipartFile("product",
+                                null,
+                                "application/json",
+                                jsonStringProduct.getBytes());
 
-                // Then
-                
+                ResultActions response = this.mockMvc.perform(multipart("/products/{id}", productId)
+                                .with(request -> { // esta es la madre del cordero para que funcione la imagen.
+                                        request.setMethod("PUT");
+                                        return request;
+                                })
+                                .file("image", null)
+                                .file(bytesArrayProduct));
 
+                // then
+                response.andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$['producto actualizado: '].name", is(productoActualizado.getName())))
+                                .andExpect(jsonPath("$['producto actualizado: '].description",
+                                                is(productoActualizado.getDescription())));
         }
 
 }
