@@ -334,7 +334,10 @@ public class ProductController {
                 .body(resource);
     }
 
-    /**
+
+
+
+    /**======================================================================================
      * actualizar producto con id recibido en la petición
      * implementación prácticamente igual a la de persistir o save
      */
@@ -434,7 +437,7 @@ public class ProductController {
 
     }
 
-    /**
+    /**==============================================================================================
      * Metodo para eliminar un producto dado el id
      */
     @DeleteMapping("/{id}")
