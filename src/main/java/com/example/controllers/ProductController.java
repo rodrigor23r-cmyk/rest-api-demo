@@ -341,6 +341,7 @@ public class ProductController {
      * actualizar producto con id recibido en la petición
      * implementación prácticamente igual a la de persistir o save
      */
+    /*
     @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     @Transactional
     public ResponseEntity<Map<String, Object>> updateProduct(
@@ -367,11 +368,11 @@ public class ProductController {
 
             return responseEntity;
         }
-        /**
-         * Persisto (guardo) el producto porque está bien formado
-         * compruebo si hay imagen para guardarla
-         * y en tal caso debo eliminar la imagen del producto
-         */
+
+        //   Persisto (guardo) el producto porque está bien formado
+        //   compruebo si hay imagen para guardarla
+        //   y en tal caso debo eliminar la imagen del producto
+
         Product productoParaActualizar = productService.findById(product_id);
 
         if (productoParaActualizar == null) {
@@ -382,32 +383,32 @@ public class ProductController {
 
         if (imagenDelProducto != null && !imagenDelProducto.isEmpty()) {
 
-            /**
-             * comprobar si productoParaActualizar tiene imagen y si es así eliminarla
-             */
+            
+            //   comprobar si productoParaActualizar tiene imagen y si es así eliminarla
+             
             if (productoParaActualizar.getProductImage() != null) {
                 // Eliminar la imagen asociada
                 fileUtil.eliminarArchivo(productoParaActualizar.getProductImage());
             }
-            /**
-             * agregar prefijo: código alfanumérico aleatorio con método Apache Commons text
-             * (Lang3) (dependencia Maven -> pom.xml)
-             * 
-             * Beans vs Components:
-             * Ahora crearemos un componente en el paquete utilities. Dentro habrá un método
-             * para guardar la imagen en una carpeta y
-             * devuelve un código aleatorio que llevará como prefijo el nombre del fichero
-             * original
-             * 
-             * NIO.2 (entrada salida no bloqueante) si no existe la carpeta la creará.
-             */
+            
+            //  * agregar prefijo: código alfanumérico aleatorio con método Apache Commons text
+            //  * (Lang3) (dependencia Maven -> pom.xml)
+            //  * 
+            //  * Beans vs Components:
+            //  * Ahora crearemos un componente en el paquete utilities. Dentro habrá un método
+            //  * para guardar la imagen en una carpeta y
+            //  * devuelve un código aleatorio que llevará como prefijo el nombre del fichero
+            //  * original
+            //  * 
+            //  * NIO.2 (entrada salida no bloqueante) si no existe la carpeta la creará.
+            
             String fileCode = fileUploadUtil.saveFile(imagenDelProducto.getOriginalFilename(), imagenDelProducto);
 
             product.setProductImage(fileCode + '-' + imagenDelProducto.getOriginalFilename());
-            /**
-             * en el paquete models crearemos un record donde devolveremos al frontend la
-             * info de la imagen
-             */
+            
+            //  * en el paquete models crearemos un record donde devolveremos al frontend la
+            //  * info de la imagen
+            
             FileUploadResponse fileUploadResponse = new FileUploadResponse(
                     fileCode + '-' + imagenDelProducto.getOriginalFilename(),
                     "/products/fileDownload",
@@ -435,7 +436,8 @@ public class ProductController {
 
         return responseEntity;
 
-    }
+    }  
+    */
 
     /**==============================================================================================
      * Metodo para eliminar un producto dado el id
