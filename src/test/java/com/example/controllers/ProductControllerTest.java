@@ -272,11 +272,11 @@ public class ProductControllerTest {
                 // then
                 response.andDo(print())
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$['producto actualizado: '].name", is(productoActualizado.getName())))
-                                .andExpect(jsonPath("$['producto actualizado: '].description",
+                                .andExpect(jsonPath("$['producto'].name", is(productoActualizado.getName())))
+                                .andExpect(jsonPath("$['producto'].description",
                                                 is(productoActualizado.getDescription())))
-                                .andExpect(jsonPath("$['producto actualizado: '].price",
-                                is(productoActualizado.getPrice().intValue())));
+                                .andExpect(jsonPath("$.producto.price",
+                                                is(productoActualizado.getPrice().intValue())));
         }
 
 }

@@ -420,7 +420,7 @@ public class ProductController {
             product.setId(product_id);
             Product productoAGuardar = productService.save(product);
             responseAsMap.put("mensaje: ", "Producto actualizado exitósamente!");
-            responseAsMap.put("producto actualizado: ", productoAGuardar);
+            responseAsMap.put("producto", productoAGuardar);
             responseEntity = new ResponseEntity<Map<String, Object>>(responseAsMap, HttpStatus.OK);
 
         } catch (DataAccessException e) {
